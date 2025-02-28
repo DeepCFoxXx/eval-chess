@@ -32,7 +32,7 @@ which stockfish
 
 This will return a path like:
 
-```
+```sh
 /usr/local/bin/stockfish
 ```
 
