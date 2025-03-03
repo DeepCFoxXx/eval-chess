@@ -1,24 +1,24 @@
 import express from "express";
-import mongoose from "mongoose";
+import db from "./config/database.js";
 import { aiMove } from "./controllers/aiController.js";
-import Game from "./models/Game.js";
 
 const app = express();
 const PORT = process.env.PORT || 5001;
-const MONGO_URI = process.env.MONGO_URI || "mongodb://localhost:27017/chess";
 
 app.use(express.json());
 
-mongoose
-  .connect(MONGO_URI, { useNewUrlParser: true, useUnifiedTopology: true })
-  .then(() => console.log("MongoDB Connected"))
-  .catch((err) => console.error("MongoDB Connection Error:", err));
+app.get("/", (req, res) => {
+  res.json({ message: "Chess AI Backend is running..." });
+});
 
 app.post("/game", async (req, res) => {
   try {
-    const newGame = new Game({ fen: "start" });
-    await newGame.save();
-    res.json({ gameId: newGame._id, fen: newGame.fen });
+    const newGame = {
+      fen: "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1",
+      createdAt: new Date(),
+    };
+    const game = await db.insert(newGame);
+    res.json({ gameId: game._id, fen: game.fen });
   } catch (err) {
     res.status(500).json({ error: "Failed to create game" });
   }
@@ -26,7 +26,7 @@ app.post("/game", async (req, res) => {
 
 app.get("/game/:id", async (req, res) => {
   try {
-    const game = await Game.findById(req.params.id);
+    const game = await db.findOne({ _id: req.params.id });
     if (!game) return res.status(404).json({ error: "Game not found" });
     res.json({ gameId: game._id, fen: game.fen });
   } catch (err) {
@@ -34,20 +34,27 @@ app.get("/game/:id", async (req, res) => {
   }
 });
 
-
 app.post("/game/:id/move/:level", async (req, res) => {
   try {
-    const game = await Game.findById(req.params.id);
-    if (!game) return res.status(404).json({ error: "Game not found" });
+    console.log(`AI move requested for game ID: ${req.params.id} at difficulty ${req.params.level}`);
+
+    const game = await db.findOne({ _id: req.params.id });
+    if (!game) {
+      console.error("Game not found");
+      return res.status(404).json({ error: "Game not found" });
+    }
 
     req.gameFen = game.fen;
+
     aiMove(req, res, async (newFen) => {
-      game.fen = newFen;
-      await game.save();
+
+      await db.update({ _id: game._id }, { $set: { fen: newFen } });
     });
   } catch (err) {
-    res.status(500).json({ error: "Error processing AI move" });
+    console.error("Error processing AI move:", err);
+    res.status(500).json({ error: "Error processing AI move", details: err.message });
   }
 });
+
 
 app.listen(PORT, () => console.log(`Server running on port ${PORT}`));

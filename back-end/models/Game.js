@@ -1,10 +1,4 @@
-const mongoose = require("mongoose");
+import Datastore from "nedb";
+const db = new Datastore({ filename: "games.db", autoload: true });
 
-const gameSchema = new mongoose.Schema({
-  player: String,
-  moves: [String],
-  result: String,
-  timestamp: { type: Date, default: Date.now }
-});
-
-module.exports = mongoose.model("Game", gameSchema);
+export default db;
