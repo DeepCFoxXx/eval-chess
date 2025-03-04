@@ -129,7 +129,4 @@ dist
 .yarn/install-state.gz
 .pnp.*
 
-# Temp DB
-back-end/data/
-back-end/data/games.db
 
