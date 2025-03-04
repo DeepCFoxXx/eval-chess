@@ -1,4 +1,10 @@
-import Datastore from "nedb";
-const db = new Datastore({ filename: "games.db", autoload: true });
+import mongoose from "mongoose";
 
-export default db;
+const gameSchema = new mongoose.Schema({
+  fen: { type: String, required: true },
+  createdAt: { type: Date, default: Date.now },
+});
+
+const Game = mongoose.model("Game", gameSchema);
+
+export default Game;
