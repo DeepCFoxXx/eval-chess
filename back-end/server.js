@@ -1,20 +1,24 @@
 import dotenv from "dotenv";
 import express from "express";
-import { connectDB } from "./config/db.js";
+import connectDB from "./config/db.js";
 import { aiMove } from "./controllers/aiController.js";
+import { verifyToken } from "./middleware/auth.js";
+import { apiLimiter } from "./middleware/rateLimit.js";
 import Game from "./models/Game.js";
+import authRoutes from "./routes/authRoutes.js";
 
 const app = express();
 const PORT = process.env.PORT || 5001;
 
-dotenv.config();
+dotenv.config({ path: './.env' });
+
 connectDB();
 
 app.use(express.json());
 
-app.get("/", (req, res) => {
-  res.json({ message: "Chess AI Backend is running..." });
-});
+app.use(apiLimiter);
+
+app.use("/auth", authRoutes);
 
 app.post("/game", async (req, res) => {
   try {
@@ -31,8 +35,7 @@ app.post("/game", async (req, res) => {
   }
 });
 
-
-app.get("/game/:id", async (req, res) => {
+app.get("/game/:id", verifyToken, async (req, res) => {
   try {
     const game = await Game.findById(req.params.id);
     if (!game) return res.status(404).json({ error: "Game not found" });
@@ -43,7 +46,7 @@ app.get("/game/:id", async (req, res) => {
   }
 });
 
-app.post("/game/:id/move/:level", async (req, res) => {
+app.post("/game/:id/move/:level", verifyToken, async (req, res) => {
   try {
     console.log(`AI move requested for game ID: ${req.params.id} at difficulty ${req.params.level}`);
 
